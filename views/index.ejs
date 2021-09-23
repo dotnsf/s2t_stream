@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<title>S2T</title>
+<script type="text/javascript" src="//code.jquery.com/jquery-2.2.4.min.js"></script>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet"/>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<link href="//use.fontawesome.com/releases/v5.8.1/css/all.css" rel="stylesheet"/>
+<script src="/socket.io/socket.io.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+<link rel="shortcut icon" href="/icon.png" type="image/png"/>
+<link rel="icon" href="/icon.png" type="image/png"/>
+<link rel="apple-touch-icon" href="/icon.png"/>
+
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="S2T"/>
+
+<style type="text/css">
+html, body{
+  text-align: center;
+  background-color: #fafafa;
+  font-size: 20px;
+  color: #333;
+}
+.result_divs{
+  text-align: left;
+  font-size: 12px;
+}
+.result_final{
+  color: #f33;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div>
+<table class="table">
+  <tr>
+    <td>
+      <select id="select_voice" name="select_voice">
+        <option value="01">1</option>
+        <option value="03">3</option>
+        <option value="04">4</option>
+      </select>
+    </td>
+    <td>
+      <input type="button" class="btn btn-xs btn-primary" id="post_btn" value="POST" onClick="postAudio();"/>
+    </td>
+  </tr>
+</table>
+</div>
+
+<div id="audio_div">
+</div>
+
+<div id="result_div">
+</div>
+
+<script>
+var uuid = generateUUID();
+var socketio = null;
+var idx = -1;
+
+var base_url = location.origin + '/';
+
+$(function(){
+  socketio = io.connect();
+  init();
+});
+
+function init(){
+  //. 初期化を通知
+  var msg = {
+    uuid: uuid,
+    timestamp: ( new Date() ).getTime()
+  };
+  socketio.emit( 'init_client', msg );
+
+  socketio.on( 'init_client_view', function( msg ){
+    console.log( 'init_client_view', msg );
+  });
+
+  socketio.on( 'event_client_view', function( evt ){
+    console.log( 'event_client_view', evt );
+    /*
+    evt = {
+      result_index: 1,
+      results: [
+        {
+          final: false,
+          alternatives: [
+            {
+              transcript: "xxx xxxx xx xxxxxx ..."
+            }
+          ]
+        }
+      ]
+    }
+    */
+    if( idx < evt.result_index ){
+      idx = evt.result_index;
+      $('#result_div').append( '<div id="result_div_' + idx + '" class="result_divs"></div>' );
+    }
+    $('#result_div_'+idx).html( evt.results[0].alternatives[0].transcript );
+    if( evt.results[0].final ){
+      $('#result_div_'+idx).addClass( 'result_final' );
+    }
+  });
+}
+
+function postAudio(){
+  var voice = $('#select_voice').val();
+
+  //. フォームにして送信
+  var data = {
+    voice: voice,
+    timestamp: ( new Date() ).getTime(),
+    uuid: uuid
+  };
+
+  var audio = '<audio controls autoplay>'
+    + '<source src="/' + voice + '.mp3" type="audio/mp3"/>'
+    + '</audio>';
+  $('#audio_div').html( audio );
+  $('#result_div').html( '' );
+  idx = -1;
+
+  //. ３秒待って Ajax 実行
+  setTimeout( function(){
+    $.ajax({
+      type: 'POST',
+      url: '/voice',
+      data: data,
+      success: function( data, dataType ){
+        //. 実際はずっと処理中になるので、しばらく結果はかえって来ない
+        console.log( data );
+      },
+      error: function( jqXHR, textStatus, errorThrown ){
+        console.log( textStatus + ': ' + errorThrown );
+      }
+    });
+  }, 3000 );
+}
+
+function generateUUID(){
+  //. Cookie の値を調べて、有効ならその値で、空だった場合は生成する
+  var did = null;
+  cookies = document.cookie.split(";");
+  for( var i = 0; i < cookies.length; i ++ ){
+    var str = cookies[i].split("=");
+    var une = unescape( str[0] );
+    if( une == " deviceid" || une == "deviceid" ){
+      did = unescape( unescape( str[1] ) );
+    }
+  }
+
+  if( did == null ){
+    var s = 1000;
+    did = ( new Date().getTime().toString(16) ) + Math.floor( s * Math.random() ).toString(16);
+  }
+
+  var dt = ( new Date() );
+  var ts = dt.getTime();
+  ts += 1000 * 60 * 60 * 24 * 365 * 100; //. 100 years
+  dt.setTime( ts );
+  var value = ( "deviceid=" + did + '; expires=' + dt.toUTCString() + '; path=/' );
+  if( isMobileSafari() ){
+    $.ajax({
+      url: '/setcookie',
+      type: 'POST',
+      data: { value: value },
+      success: function( r ){
+        //console.log( 'success: ', r );
+      },
+      error: function( e0, e1, e2 ){
+        //console.log( 'error: ', e1, e2 );
+      }
+    });
+  }else{
+    document.cookie = ( value );
+    //console.log( 'value: ', value );
+  }
+
+  return did;
+}
+
+function isMobileSafari(){
+  return ( navigator.userAgent.indexOf( 'Safari' ) > 0 && navigator.userAgent.indexOf( 'Mobile' ) > 0 );
+}
+</script>
+</body>
+</html>
