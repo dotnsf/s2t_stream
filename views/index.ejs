@@ -35,7 +35,7 @@ html, body{
   font-weight: bold;
 }
 
-.balloon1 {
+.balloon1, .ballooned1 {
   position: relative;
   display: inline-block;
   margin: 1.5em 0;
@@ -55,6 +55,12 @@ html, body{
   margin-left: -15px;
   border: 15px solid transparent;
   border-top: 15px solid #e0edff;
+}
+
+.ballooned1{
+  width: 90%;
+  margin: 0.2em 0 !important;
+  background: #ffede0;
 }
 
 .balloon1 p {
@@ -113,7 +119,6 @@ function init(){
     type: 'GET',
     url: '/files',
     success: function( result ){
-      console.log( result );
       if( result && result.status ){
         for( var i = 0; i < result.files.length; i ++ ){
           var opt = '<option value="' + result.files[i] + '">' + result.files[i] + '</option>';
@@ -243,6 +248,8 @@ function showNextText(){
     
     $('#result_p_'+idxtext.index).html( idxtext.text );
     if( idxtext.final ){
+      $('#result_div_'+idxtext.index).removeClass( 'balloon1' );
+      $('#result_div_'+idxtext.index).addClass( 'ballooned1' );
       $('#result_p_'+idxtext.index).addClass( 'result_final' );
     }
 

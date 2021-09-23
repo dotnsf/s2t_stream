@@ -171,7 +171,7 @@ io.sockets.on( 'connection', function( socket ){
 
   //. 初期化時（ロード後の最初の resized 時）
   socket.on( 'init_client', function( msg ){
-    console.log( 'init_client', msg );
+    //console.log( 'init_client', msg );
 
     //. これでは初期化時以外でも目的のクライアントに返せるよう connection 時の socket を記憶しておく
     if( !sockets[msg.uuid] ){
