@@ -65,6 +65,7 @@ html, body{
 var uuid = generateUUID();
 var socketio = null;
 var idx = -1;
+var idxtexts = [];
 
 var base_url = location.origin + '/';
 
@@ -86,7 +87,7 @@ function init(){
   });
 
   socketio.on( 'event_client_view', function( evt ){
-    console.log( 'event_client_view', evt );
+    //console.log( 'event_client_view', evt );
     /*
     evt = {
       result_index: 1,
@@ -106,11 +107,19 @@ function init(){
       idx = evt.result_index;
       $('#result_div').append( '<div id="result_div_' + idx + '" class="result_divs"></div>' );
     }
+
+    var idxtext = { index: evt.result_index, text: evt.results[0].alternatives[0].transcript, final: evt.results[0].final };
+    idxtexts.push( idxtext );
+    /*
+    var idxtext = { index: evt.result_index, text: evt.results[0].alternatives[0].transcript, final: evt.results[0].final };
     $('#result_div_'+idx).html( evt.results[0].alternatives[0].transcript );
     if( evt.results[0].final ){
       $('#result_div_'+idx).addClass( 'result_final' );
     }
+    */
   });
+
+  setInterval( showNextText, 750 );
 }
 
 function postAudio(){
@@ -129,8 +138,9 @@ function postAudio(){
   $('#audio_div').html( audio );
   $('#result_div').html( '' );
   idx = -1;
+  idxtexts = [];
 
-  //. ３秒待って Ajax 実行
+  //. １秒待って Ajax 実行
   setTimeout( function(){
     $.ajax({
       type: 'POST',
@@ -144,7 +154,19 @@ function postAudio(){
         console.log( textStatus + ': ' + errorThrown );
       }
     });
-  }, 3000 );
+  }, 1000 );
+}
+
+function showNextText(){
+  if( idxtexts.length > 0 ){
+    var idxtext = idxtexts[0];
+    idxtexts.splice( 0, 1 );
+    
+    $('#result_div_'+idxtext.index).html( idxtext.text );
+    if( idxtext.final ){
+      $('#result_div_'+idxtext.index).addClass( 'result_final' );
+    }
+  }
 }
 
 function generateUUID(){
