@@ -31,17 +31,17 @@ var s2t_params = {
   //keywords: [],
   //keywordsThreshold: 0.5,
   interimResults: true,
+  timestamps: true,
   maxAlternatives: 3
 };
 //var s2t_stream = my_s2t.s2t.recognizeUsingWebSocket( s2t_params );
 
-
-//. Page for guest
+//. Page for client
 app.get( '/', function( req, res ){
   res.render( 'index', {} );
 });
 
-app.post( '/voice', async function( req, res ){
+app.post( '/voice', function( req, res ){
   res.contentType( 'application/json; charset=utf-8' );
 
   var voice = req.body.voice;
@@ -59,17 +59,21 @@ app.post( '/voice', async function( req, res ){
   })
 });
 
-app.post( '/audio', async function( req, res ){
+app.post( '/audio', function( req, res ){
   res.contentType( 'application/json; charset=utf-8' );
 
-  var audiopath = req.file.path;
-  var audiotype = req.file.mimetype;
-  //var imgsize = req.file.size;
-  var ext = imgtype.split( "/" )[1];
-  var audiofilename = req.file.filename;
-  var filename = req.file.originalname;
+  var voicefile = req.file.filename;
+  var uuid = req.body.uuid;
 
-  var audio = fs.readFileSync( audiopath );
+  processAudioFile( voicefile, uuid, true ).then( function( result ){
+    res.write( JSON.stringify( { status: true }, 2, null ) );
+    res.end();
+  }).catch( function( err ){
+    console.log( err );
+    res.status( 400 );
+    res.write( JSON.stringify( { status: false, error: err }, 2, null ) );
+    res.end();
+  })
 });
 
 app.post( '/setcookie', function( req, res ){
@@ -88,6 +92,7 @@ async function processAudioFile( filepath, uuid, deleteFileWhenFinished ){
     var s2t_stream = my_s2t.s2t.recognizeUsingWebSocket( s2t_params );
     fs.createReadStream( filepath ).pipe( s2t_stream );
     s2t_stream.on( 'data', function( evt ){
+      //console.log( evt );
       /*
       evt = {
         result_index: 1,
@@ -96,7 +101,14 @@ async function processAudioFile( filepath, uuid, deleteFileWhenFinished ){
             final: false,
             alternatives: [
               {
-                transcript: "xxx xxxx xx xxxxxx ..."
+                transcript: "xxx xxxx xx xxxxxx ...",
+                timestamps: [
+                  [ "xxx", 15.55, 16.04 ],
+                  [ "xxxx", 16.25, 16.6 ],
+                  [ "xx", 16.6, 16.71 ],
+                  [ "xxxxxx", 16.71, 17.21 ],
+                    :
+                ]
               }
             ]
           }
@@ -107,6 +119,7 @@ async function processAudioFile( filepath, uuid, deleteFileWhenFinished ){
       if( evt.results[0].final ){
         var text = evt.results[0].alternatives[0].transcript;
 
+        //. Watson Discovery に問い合わせる？
       }
     });
     s2t_stream.on( 'error', function( evt ){

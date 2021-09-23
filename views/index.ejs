@@ -26,13 +26,40 @@ html, body{
   font-size: 20px;
   color: #333;
 }
-.result_divs{
+.result_p{
   text-align: left;
   font-size: 12px;
 }
 .result_final{
   color: #f33;
   font-weight: bold;
+}
+
+.balloon1 {
+  position: relative;
+  display: inline-block;
+  margin: 1.5em 0;
+  padding: 7px 10px;
+  min-width: 120px;
+  max-width: 100%;
+  color: #555;
+  font-size: 16px;
+  background: #e0edff;
+}
+
+.balloon1:before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -15px;
+  border: 15px solid transparent;
+  border-top: 15px solid #e0edff;
+}
+
+.balloon1 p {
+  margin: 0;
+  padding: 0;
 }
 </style>
 </head>
@@ -87,7 +114,7 @@ function init(){
   });
 
   socketio.on( 'event_client_view', function( evt ){
-    //console.log( 'event_client_view', evt );
+    console.log( 'event_client_view', evt );
     /*
     evt = {
       result_index: 1,
@@ -103,20 +130,9 @@ function init(){
       ]
     }
     */
-    if( idx < evt.result_index ){
-      idx = evt.result_index;
-      $('#result_div').append( '<div id="result_div_' + idx + '" class="result_divs"></div>' );
-    }
 
     var idxtext = { index: evt.result_index, text: evt.results[0].alternatives[0].transcript, final: evt.results[0].final };
     idxtexts.push( idxtext );
-    /*
-    var idxtext = { index: evt.result_index, text: evt.results[0].alternatives[0].transcript, final: evt.results[0].final };
-    $('#result_div_'+idx).html( evt.results[0].alternatives[0].transcript );
-    if( evt.results[0].final ){
-      $('#result_div_'+idx).addClass( 'result_final' );
-    }
-    */
   });
 
   setInterval( showNextText, 750 );
@@ -161,10 +177,15 @@ function showNextText(){
   if( idxtexts.length > 0 ){
     var idxtext = idxtexts[0];
     idxtexts.splice( 0, 1 );
+
+    if( idx < idxtext.index ){
+      idx = idxtext.index;
+      $('#result_div').append( '<div id="result_div_' + idx + '" class="balloon1"><p class="result_p" id="result_p_' + idx + '"></p></div>' );
+    }
     
-    $('#result_div_'+idxtext.index).html( idxtext.text );
+    $('#result_p_'+idxtext.index).html( idxtext.text );
     if( idxtext.final ){
-      $('#result_div_'+idxtext.index).addClass( 'result_final' );
+      $('#result_p_'+idxtext.index).addClass( 'result_final' );
     }
   }
 }
