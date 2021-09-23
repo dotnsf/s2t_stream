@@ -77,18 +77,29 @@ app.post( '/voice', function( req, res ){
 app.post( '/audio', function( req, res ){
   res.contentType( 'application/json; charset=utf-8' );
 
-  var voicefile = req.file.filename;
+  var voicefile = req.file.path;
+  var filename = req.file.originalname;
   var uuid = req.body.uuid;
 
-  processAudioFile( voicefile, uuid, true ).then( function( result ){
-    res.write( JSON.stringify( { status: true }, 2, null ) );
-    res.end();
-  }).catch( function( err ){
-    console.log( err );
-    res.status( 400 );
-    res.write( JSON.stringify( { status: false, error: err }, 2, null ) );
-    res.end();
-  })
+  //. public フォルダへリネーム＆移動してから処理する
+  fs.rename( voicefile, './public/' + filename, function( err ){
+    if( err ){
+      console.log( err );
+      res.status( 400 );
+      res.write( JSON.stringify( { status: false, error: err }, 2, null ) );
+      res.end();
+    }else{
+      processAudioFile( './public/' + filename, uuid ).then( function( result ){
+        res.write( JSON.stringify( { status: true }, 2, null ) );
+        res.end();
+      }).catch( function( err ){
+        console.log( err );
+        res.status( 400 );
+        res.write( JSON.stringify( { status: false, error: err }, 2, null ) );
+        res.end();
+      })
+    }
+  });
 });
 
 app.post( '/setcookie', function( req, res ){
