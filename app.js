@@ -41,12 +41,27 @@ app.get( '/', function( req, res ){
   res.render( 'index', {} );
 });
 
+app.get( '/files', function( req, res ){
+  res.contentType( 'application/json; charset=utf-8' );
+
+  var files = [];
+  var _files = fs.readdirSync( './public' );
+  for( var i = 0; i < _files.length; i ++ ){
+    if( _files[i].endsWith( '.mp3' ) ){
+      files.push( _files[i] );
+    }
+  }
+
+  res.write( JSON.stringify( { status: true, files: files }, 2, null ) );
+  res.end();
+});
+
 app.post( '/voice', function( req, res ){
   res.contentType( 'application/json; charset=utf-8' );
 
   var voice = req.body.voice;
   var uuid = req.body.uuid;
-  var voicefile = './public/' + voice + '.mp3';
+  var voicefile = './public/' + voice;
 
   processAudioFile( voicefile, uuid ).then( function( result ){
     res.write( JSON.stringify( { status: true }, 2, null ) );
